@@ -9,7 +9,7 @@ class Tetris {
         this.scoreBoardWidth = !!scoreBoardWidth ? scoreBoardWidth : 320;
         this.score = 0;
         this.boardGameWidth = width - this.scoreBoardWidth;
-        this.speed = 0.5;
+        this.speed = 1; // In seconds
         this.tetrominoShapes = !!tetrominoes ? tetrominoes : [];
         this.tetrominoes = [];
         this.blockCount = !!blockCount ? blockCount : {
@@ -55,6 +55,7 @@ class Tetris {
                     x: j * this.blockSettings.width,
                     y: i * this.blockSettings.height,
                     color: this.blockSettings.emptyColor,
+                    id: null,
                 })
             }
             this.blocks.push(blockCol);
@@ -77,9 +78,26 @@ class Tetris {
             case 'over':
                 this.drawGameOverPopup();
                 break;
+            case 'playing':
+                this.drawTetrominoes();
+                break;
             default:
                 break;
         }
+    }
+    drawTetrominoes() {
+        this.tetrominoes.forEach(piece => {
+            // this.ctx.fillStyle = piece.color;
+            piece.tetromino[piece.tetrominoN].forEach((shapeRow,rowIndex) => {
+                shapeRow.forEach((shapeCol,colIndex) => {
+                    if(shapeCol) {
+                        let block = this.blocks[rowIndex + piece.y][colIndex + piece.x];
+                        block.color = piece.color;
+                        block.id = piece.id;
+                    }
+                })
+            })
+        })
     }
     drawScoreBoard() {
         let scoreBoardX = this.canvas.width - this.scoreBoardWidth;
@@ -128,18 +146,96 @@ class Tetris {
         })
     }
     createTetromino() {
-        
+        let shape = this.getRandomTetrominoShape();
+        let showInIndex = Math.floor(Math.random() * Math.floor(this.blockCount.x - 4));
+        let create = new Tetromino(shape[0], shape[1], showInIndex, this.blockCount, this.speed);
+
+        this.tetrominoes.push(create);
+        console.log('tetrominoes ',this.tetrominoes)
     }
     getRandomTetrominoShape() {
-        return Math.floor(Math.random() * this.tetrominoes.length);
+        return this.tetrominoShapes[Math.floor(Math.random() * this.tetrominoShapes.length)];
+    }
+    update() {
+        if(this.gameStatus == 'playing') {
+
+        }
     }
     render() {
+        this.ctx.clearRect(0,0,this.canvas.width,this.canvas.height);
         this.draw();  
+        this.update();
+
         requestAnimationFrame(() => {
             this.render();
         })
     }
-
+    play() {
+        if(this.gameStatus !== 'playing') {
+            this.gameStatus = "playing";
+            this.createTetromino();
+        }
+        console.log(this.tetrominoes)
+    }
+    clearTetromino(x, y, shape) {
+        shape.forEach((shapeRow,rowIndex) => {
+            shapeRow.forEach((shapeCol,colIndex) => {
+                if(shapeCol) {
+                    let block = this.blocks[rowIndex+y][colIndex+x];
+                    block.color = this.blockSettings.emptyColor
+                    block.id = null;
+                }
+            });
+        });
+    }
+    isCollide(direction) {
+        let directionMap = {
+            right: [0,1],
+            left: [0,-1],
+            bottom: [1,0],
+            top: [-1,0],
+            topRight: [-1, 1],
+            topLeft: [-1, -1],
+            bottomRight: [1, 1],
+            bottomLeft: [1, -1]
+        }
+        let isCollide = false;
+        let theDirection = directionMap[direction];
+        this.tetrominoes.forEach(tetromino => {
+            if(!tetromino.put) {
+                tetromino.tetromino[tetromino.tetrominoN].forEach((shapeRow,rowIndex) => {
+                    shapeRow.forEach((shapeCol,colIndex) => {
+                        if(shapeCol) {
+                            let currentBlockIndex = [
+                                rowIndex + tetromino.y,
+                                colIndex + tetromino.x
+                            ];
+                            if(this.blocks[currentBlockIndex[0] + theDirection[0]] == undefined) {
+                                isCollide = true;
+                                tetromino.put = true;
+                                return;
+                            }
+                            let nextBlock = this.blocks[currentBlockIndex[0] + theDirection[0]][currentBlockIndex[1] + theDirection[1]];
+                            console.log("nextblockid ",nextBlock.id," tetroid ", tetromino.id);
+                            if(direction == 'bottom' && 
+                                nextBlock.id !== null &&
+                                nextBlock.id !== tetromino.id) {
+                                    isCollide = true;
+                                    tetromino.put = true;
+                                    console.log("YES PUT")
+                                    return;
+                                }
+                            isCollide = false;
+                            return;
+                        }
+                    });
+                });
+            }
+        });
+        console.log('iscollide ',isCollide);
+        if(isCollide) this.createTetromino();
+        return isCollide;
+    }
     events() {
         let that = this;
 
@@ -177,8 +273,33 @@ class Tetris {
                 mouseLocation.x < that.btnStart.x + that.btnStart.w &&
                 mouseLocation.y >= that.btnStart.y &&
                 mouseLocation.y < that.btnStart.y + that.btnStart.h) {
-                    that.gameStatus = "playing";
+                    that.play();
                 }
         });
+        document.addEventListener("keydown", function(event) {
+            event.preventDefault();
+            that.tetrominoes.forEach(tetromino => {
+                if(!tetromino.put && !that.isCollide('bottom')) {
+                    that.clearTetromino(tetromino.x,tetromino.y,tetromino.tetromino[tetromino.tetrominoN]);
+                    if(event.key == "ArrowRight" || event.key == "d") 
+                        tetromino.moveRight();
+                    else if(event.key == "ArrowLeft" || event.key == "a") 
+                        tetromino.moveLeft();
+                    else if(event.key == "ArrowDown" || event.key == "s") 
+                        tetromino.moveDown();
+                    else if(event.key == " ") 
+                        tetromino.rotate();
+                }
+            })
+        });
+
+        setInterval(() => {
+            this.tetrominoes.forEach(tetromino => {
+                if(!tetromino.put && !this.isCollide('bottom')) {
+                    this.clearTetromino(tetromino.x, tetromino.y, tetromino.tetromino[tetromino.tetrominoN]);
+                    tetromino.moveDown();
+                } ;
+            });
+        }, this.speed * 1000);
     }
 }

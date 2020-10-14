@@ -1,0 +1,31 @@
+@font-face {
+    font-family: 'Tetris';
+    src: url(./../fonts/TetrisBlocks20-oKwA.otf);
+}
+body {
+    background-color: rgb(50, 50, 98);
+}
+#header {
+    text-align: center;
+}
+#header h1 {
+    font-family: 'Tetris';
+    font-size: 5rem;
+    color: #fff;
+}
+.container {
+    width: 960px;
+    margin: 0 auto;
+}
+.card {
+    background-color: #fff;
+    border-radius: 1rem;
+}
+.card-body {
+    padding: 1rem;
+    display: flex;
+    justify-content: center;
+}
+#canvas {
+    border-radius: .3rem;
+}

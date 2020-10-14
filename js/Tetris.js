@@ -156,9 +156,14 @@ class Tetris {
     getRandomTetrominoShape() {
         return this.tetrominoShapes[Math.floor(Math.random() * this.tetrominoShapes.length)];
     }
+    checkFullRow() {
+        for(var i = this.blocks.length; i-- > 0;) {
+
+        }
+    }
     update() {
         if(this.gameStatus == 'playing') {
-
+            this.checkFullRow();
         }
     }
     render() {
@@ -225,7 +230,6 @@ class Tetris {
                                     console.log("YES PUT")
                                     return;
                                 }
-                            isCollide = false;
                             return;
                         }
                     });
